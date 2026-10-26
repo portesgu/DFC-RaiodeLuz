@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Raio de Luz · Caixa e Servos</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E☀️%3C/text%3E%3C/svg%3E">
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#f3f6fb;--card:#fff;--ink:#1b2142;--mut:#65708c;--line:#e0e6f1;--sun:#f0b429;--sun2:#fff3cf;--blue:#3a63d0;--ok:#1f8a54;--okb:#ddf3e6;--warn:#a96a00;--warnb:#fff0cc;--bad:#c0392b;--badb:#fbe4e1;--nul:#8a93a8;--nulb:#eceff5}
+@media(prefers-color-scheme:dark){:root:not([data-theme=light]){--bg:#0e1325;--card:#171e38;--ink:#edf1fc;--mut:#98a4c4;--line:#283254;--sun:#f5c04a;--sun2:#3b3113;--blue:#7e9cf0;--ok:#5fd394;--okb:#143427;--warn:#f5c04a;--warnb:#3b3113;--bad:#ff8f82;--badb:#412220;--nul:#8d97b3;--nulb:#222b4a}}
+*{box-sizing:border-box}html,body{margin:0}
+body{font-family:'Outfit',system-ui,sans-serif;background:var(--bg);color:var(--ink);line-height:1.4;padding:env(safe-area-inset-top,0) 0 env(safe-area-inset-bottom,0)}
+.top{max-width:1120px;margin:auto;padding:18px 16px 4px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.logo{width:30px;height:30px;border-radius:50%;background:radial-gradient(circle,var(--sun) 40%,transparent 42%),repeating-conic-gradient(var(--sun) 0 8deg,transparent 8deg 30deg)}
+h1{font-size:22px;margin:0;font-weight:700}
+.st{margin-left:auto;font-size:13px;color:var(--mut);display:flex;gap:8px;align-items:center}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--ok)}.dot.off{background:var(--bad)}
+nav{max-width:1120px;margin:auto;padding:8px 16px;display:flex;gap:6px;overflow-x:auto}
+nav button,.pill{font:inherit;padding:8px 15px;border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:999px;cursor:pointer;white-space:nowrap}
+nav button.on,.pill.on{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+main{max-width:1120px;margin:auto;padding:6px 16px 48px}
+.hero{border-radius:18px;padding:22px;color:#1b2142;background:repeating-conic-gradient(from 200deg at 100% 0,#ffd770 0 6deg,#ffe596 6deg 14deg);margin:6px 0 12px;position:relative;overflow:hidden}
+.hero small{font-size:14px;opacity:.8}.hero .big{font-size:clamp(34px,8vw,52px);font-weight:700;line-height:1.1}
+.hero .sub{display:flex;gap:18px;flex-wrap:wrap;margin-top:10px;font-size:14px}.hero .sub b{display:block;font-size:18px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:10px;margin:10px 0}
+.c{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px}
+.c small{color:var(--mut);display:block}.c strong{font-size:22px}.c .n{font-size:13px;color:var(--mut);margin-top:4px}
+.in{color:var(--ok)}.out{color:var(--bad)}
+h2{font-size:17px;margin:20px 0 8px}
+.bars{display:flex;gap:10px;align-items:flex-end;height:170px;padding:8px 4px 0;overflow-x:auto}
+.bar{flex:1;min-width:54px;display:flex;flex-direction:column;align-items:center;height:100%;justify-content:flex-end;font-size:12px;color:var(--mut)}
+.pair{display:flex;gap:3px;align-items:flex-end;height:130px}
+.pair i{width:18px;border-radius:5px 5px 0 0;display:block;min-height:2px}.pair .e{background:var(--ok)}.pair .s{background:var(--bad)}
+.tools{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0}
+input,select{font:inherit;padding:9px 12px;border:1px solid var(--line);border-radius:10px;background:var(--card);color:var(--ink);min-width:0}
+.tools input{flex:1;min-width:150px}
+.btn{font:inherit;font-weight:700;padding:9px 14px;border:0;border-radius:10px;background:var(--sun);color:#2a1d00;cursor:pointer}
+.wrap{overflow-x:auto;background:var(--card);border:1px solid var(--line);border-radius:14px}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th,td{padding:9px 11px;border-bottom:1px solid var(--line);text-align:left;white-space:nowrap}
+th{color:var(--mut);font-weight:500;position:sticky;top:0;background:var(--card)}
+.r{text-align:right}tr.mes td{background:var(--sun2);font-weight:700}
+tr.click{cursor:pointer}tr.click:hover td{background:var(--sun2)}
+.nome{position:sticky;left:0;background:var(--card);font-weight:500;z-index:1}
+.chip{display:inline-block;min-width:62px;text-align:center;padding:3px 8px;border-radius:999px;font-size:12px;font-weight:700}
+.PAGO{background:var(--okb);color:var(--ok)}.PAGAR{background:var(--warnb);color:var(--warn)}.NULO{background:var(--nulb);color:var(--nul)}
+.ed .chip{cursor:pointer}
+.prog{height:8px;border-radius:9px;background:var(--nulb);overflow:hidden;margin:8px 0 4px;display:flex}.prog i{display:block}
+.mut{color:var(--mut);font-size:13px}.err{padding:16px;border-radius:12px;background:var(--badb);color:var(--bad)}
+.pop{position:fixed;inset:auto 0 0 0;background:var(--card);border-top:1px solid var(--line);padding:16px 16px calc(16px + env(safe-area-inset-bottom,0));display:flex;gap:8px;justify-content:center;flex-wrap:wrap;box-shadow:0 -8px 30px rgba(0,0,0,.18);z-index:9}
+.pop p{width:100%;text-align:center;margin:0 0 4px}
+dialog{border:1px solid var(--line);border-radius:16px;background:var(--card);color:var(--ink);width:min(92%,400px)}
+dialog label{display:block;margin:10px 0 3px;font-size:13px;color:var(--mut)}dialog input,dialog select{width:100%}
+.chip.sel,select.chip{appearance:none;-webkit-appearance:none;border:0;cursor:pointer;font:inherit;font-size:12px;font-weight:700;padding:5px 12px;border-radius:999px;text-align:center;min-width:74px}
+select.chip option{background:var(--card);color:var(--ink)}
+select.mini{padding:4px 8px;font-size:13px;max-width:190px}
+.fbar{max-width:1120px;margin:2px auto 0;padding:0 16px;display:flex;gap:8px;align-items:center}
+.fbar select{font-weight:500}
+.ban{background:var(--sun2);border-radius:12px;padding:12px 14px;margin:10px 0;display:flex;gap:10px;align-items:center;flex-wrap:wrap;justify-content:space-between}
+.bars .bar{cursor:pointer}.bar.on{color:var(--ink);font-weight:700}
+</style>
+</head>
+<body>
+<div class="top"><div class="logo"></div><h1>Raio de Luz</h1><div class="st"><span class="dot" id="dot"></span><span id="st">Carregando…</span><button class="pill" onclick="load(true)">Atualizar</button><button class="pill" onclick="cfgOpen()" title="Conectar edição">⚙</button></div></div>
+<nav id="nav"></nav><div class="fbar" id="fbar"></div>
+<main id="app"><p class="mut">Lendo a planilha…</p></main>
+<dialog id="dlg"><form method="dialog" id="fm"><h3 style="margin:0">Novo lançamento</h3>
+<label>Tipo</label><select id="f_tipo"><option value="in">Receita (dinheiro que entrou)</option><option value="out">Custo (dinheiro que saiu)</option></select>
+<label>Data</label><input type="date" id="f_data" required><label>Descrição</label><input id="f_desc" required placeholder="Ex.: INSC. DONS E SANT.">
+<label>Valor (R$)</label><input id="f_val" type="number" step="0.01" min="0" required>
+<label>Faz parte de qual encontro? (opcional)</label><select id="f_enc"></select>
+<div style="display:flex;gap:8px;justify-content:flex-end;margin-top:14px"><button class="pill" value="x" formnovalidate>Cancelar</button><button class="btn" value="ok">Salvar na planilha</button></div></form></dialog>
+<dialog id="cfg"><form method="dialog" id="cf"><h3 style="margin:0">Conectar edição</h3><p class="mut">Cole o link do Apps Script (termina em /exec). Veja o passo a passo do Code.gs.</p>
+<input id="c_url" placeholder="https://script.google.com/macros/s/.../exec"><div style="display:flex;gap:8px;justify-content:flex-end;margin-top:14px"><button class="pill" value="x" formnovalidate>Fechar</button><button class="btn" value="ok">Salvar</button></div></form></dialog>
+<script>
+/* ===== CONFIGURAÇÃO ===== */
+const CFG={
+  SHEET_ID:'1AEGOlkvBImb24SPwcWWyrur2ZWrJD09G11JQ-CwUmy4',
+  ABA_DFC:'DFC', ABA_SERVOS:'SERVOS RDL',
+  API_URL:'',            // ou use o botão ⚙ no site
+  REFRESH_MS:10000,
+  VALORES:{'REBANHÃO 2026':115,'EXPERIÊNCIA DE ORAÇÃO 2026':115,'DONS E SANTIFICAÇÕES 2026':35}, // valor por servo (para "faltam R$")
+  // sugestão automática de classificação pelo texto da descrição (nomes = cabeçalhos da aba de servos)
+  SUGESTOES:[[/REBANH/,'REBANHÃO 2026'],[/EXPERI|EXP\./,'EXPERIÊNCIA DE ORAÇÃO 2026'],[/DONS/,'DONS E SANTIFICAÇÕES 2026']]
+};
+const $=s=>document.querySelector(s),MES=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const brl=n=>n.toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
+const mlabel=m=>MES[+m.slice(5)-1]+'/'+m.slice(0,4),sum=(L,k)=>L.reduce((a,x)=>a+x[k],0);
+const API=()=>localStorage.getItem('rdl_api')||CFG.API_URL;
+function num(s){s=String(s??'').replace(/[^\d,.\-]/g,'');if(!/\d/.test(s))return null;
+  if(s.includes(','))s=s.replace(/\./g,'').replace(',','.');else if((s.match(/\./g)||[]).length>1||/\.\d{3}$/.test(s))s=s.replace(/\./g,'');
+  const v=parseFloat(s);return isNaN(v)?null:v}
+function dt(s){s=String(s||'').trim();let m=s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);if(m)return`${m[3]}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`;
+  m=s.match(/^(\d{4})-(\d{2})-(\d{2})/);return m?m[0]:null}
+function csv(t){const R=[];let r=[],c='',q=false;for(let i=0;i<t.length;i++){const ch=t[i];
+  if(q){if(ch=='"'){if(t[i+1]=='"'){c+='"';i++}else q=false}else c+=ch}
+  else if(ch=='"')q=true;else if(ch==','){r.push(c);c=''}else if(ch=='\n'){r.push(c);R.push(r);r=[];c=''}else if(ch!='\r')c+=ch}
+  if(c||r.length){r.push(c);R.push(r)}return R}
+async function grid(aba){const u=`https://docs.google.com/spreadsheets/d/${CFG.SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(aba)}&_=${Date.now()}`;
+  const r=await fetch(u);if(!r.ok)throw new Error('HTTP '+r.status);const t=await r.text();if(/^\s*</.test(t))throw new Error('A planilha não está pública');return csv(t)}
+
+/* ===== leitura da planilha ===== */
+function parse(G,S){
+  const lan=[];let first=-1;
+  G.forEach((r,i)=>{const d=dt(r[0]);if(d&&String(r[1]||'').trim()){if(first<0)first=i;
+    lan.push({row:i+1,d,m:d.slice(0,7),desc:r[1].trim().replace(/\s+/g,' '),e:num(r[2])||0,s:num(r[3])||0,enc:String(r[5]||'').trim()})}});
+  let ini=0;for(let i=first-1;i>=0;i--){if(/^\s*data\s*$/i.test(String(G[i][0])))break;const v=num(G[i][4]);if(v!==null&&!String(G[i][0]).trim()){ini=v;break}}
+  const find=l=>{for(let i=0;i<G.length;i++)for(let j=0;j<G[i].length;j++)if(String(G[i][j]).trim().toUpperCase()===l)return[i,j];return null};
+  const at=(l,di,dj)=>{const p=find(l);if(!p)return null;return num((G[p[0]+di]||[])[p[1]+dj])};
+  const investido=at('INVESTIDO',1,0)||0,rend=at('RENDIMENTOS',0,1)||0;
+  const inv={investido,rend,dinheiro:at('DINHEIRO',1,0)||0,total:at('TOTAL INVESTIMENTO',1,0)??(investido+rend)};
+  const ev=(S[0]||[]).slice(1).map(x=>x.trim()).filter(Boolean);
+  const servos=S.slice(1).filter(r=>String(r[0]).trim()).map((r,i)=>({n:r[0].trim(),st:ev.map((_,k)=>String(r[k+1]||'').trim().toUpperCase()||'NULO')}));
+  return{lan,ini,inv,ev,servos}}
+
+/* ===== estado ===== */
+let D=null,tab='resumo',fMes='',fQ='',fTipo='',fEv='',last='',key=sessionStorage.getItem('rdl_key')||'';
+const TABS=[['resumo','Resumo'],['lan','Lançamentos'],['desc','Por descrição'],['servos','Servos']];
+function renderNav(){$('#nav').innerHTML=TABS.map(([k,n])=>`<button class="${k==tab?'on':''}" onclick="go('${k}')">${n}</button>`).join('')}
+function go(k){tab=k;renderNav();draw();scrollTo(0,0)}
+async function load(){try{const[G,S]=await Promise.all([grid(CFG.ABA_DFC),grid(CFG.ABA_SERVOS)]);const h=JSON.stringify([G,S]);
+  $('#dot').className='dot';$('#st').textContent='ao vivo · '+new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  if(h!==last&&document.activeElement?.tagName!=='SELECT'){last=h;D=parse(G,S);draw()}}
+ catch(e){$('#dot').className='dot off';$('#st').textContent='sem conexão';if(!D)$('#app').innerHTML=`<div class="err"><b>Não consegui ler a planilha.</b><br>${esc(e.message)}<br>Abra a planilha → Compartilhar → "Qualquer pessoa com o link" como <b>Leitor</b>, e confira os nomes das abas (<code>${CFG.ABA_DFC}</code> e <code>${CFG.ABA_SERVOS}</code>).</div>`}}
+const months=()=>[...new Set(D.lan.map(x=>x.m))].sort().reverse();
+const vis=()=>D.lan.filter(x=>!fMes||x.m==fMes);
+function encs(){const o=[],seen=new Set();[...D.ev,...D.lan.map(x=>x.enc)].forEach(n=>{if(n&&!seen.has(n.toUpperCase())){seen.add(n.toUpperCase());o.push(n)}});return o}
+const encOpts=sel=>'<option value="">— sem encontro —</option>'+encs().map(n=>`<option ${n.toUpperCase()==String(sel).toUpperCase()?'selected':''}>${esc(n)}</option>`).join('');
+function tot(){const e=sum(D.lan,'e'),s=sum(D.lan,'s'),saldo=D.ini+e-s,banco=saldo+D.inv.total;return{saldo,banco,total:banco+D.inv.dinheiro}}
+function draw(){if(!D)return;
+  $('#fbar').innerHTML=tab=='servos'?'':`<select onchange="fMes=this.value;draw()"><option value="">Todos os meses</option>${months().map(m=>`<option value="${m}" ${m==fMes?'selected':''}>${mlabel(m)}</option>`).join('')}</select>${fMes?'<button class="pill" onclick="fMes=\'\';draw()">Limpar</button>':''}`;
+  $('#app').innerHTML={resumo,lan,desc,servos}[tab]()}
+
+/* ===== telas ===== */
+function sugestoes(){return D.lan.filter(x=>!x.enc).map(x=>{const g=CFG.SUGESTOES.find(([rx,n])=>rx.test(x.desc.toUpperCase())&&D.ev.includes(n));return g?{row:x.row,desc:x.desc,enc:g[1]}:null}).filter(Boolean)}
+function resumo(){const t=tot(),I=D.inv,L=vis(),e=sum(L,'e'),s=sum(L,'s'),ms=months().slice().reverse();
+  const mx=Math.max(1,...ms.flatMap(m=>[sum(D.lan.filter(x=>x.m==m),'e'),sum(D.lan.filter(x=>x.m==m),'s')]));
+  const sug=sugestoes();
+  let h=`<div class="hero"><small>Total do grupo (banco + dinheiro)</small><div class="big">${brl(t.total)}</div>
+  <div class="sub"><span>Saldo do caixa<b>${brl(t.saldo)}</b></span><span>Total investido<b>${brl(I.total)}</b><small>${brl(I.investido)} aplicados + ${brl(I.rend)} de rendimento</small></span><span>Dinheiro em mãos<b>${brl(I.dinheiro)}</b></span><span>Banco<b>${brl(t.banco)}</b></span></div></div>
+  <h2>${fMes?mlabel(fMes):'Todo o período'}</h2><div class="grid"><div class="c"><small>Entradas</small><strong class="in">${brl(e)}</strong></div><div class="c"><small>Saídas</small><strong class="out">${brl(s)}</strong></div><div class="c"><small>Resultado</small><strong>${brl(e-s)}</strong></div></div>
+  <div class="c"><div class="bars">${ms.map(m=>{const g=D.lan.filter(x=>x.m==m),a=sum(g,'e'),b=sum(g,'s');
+    return`<div class="bar ${m==fMes?'on':''}" onclick="fMes='${m==fMes?'':m}';draw()"><div class="pair"><i class="e" style="height:${a/mx*100}%" title="Entradas ${brl(a)}"></i><i class="s" style="height:${b/mx*100}%" title="Saídas ${brl(b)}"></i></div>${mlabel(m)}</div>`}).join('')}</div><div class="mut">Verde: entradas · Vermelho: saídas · toque num mês para filtrar</div></div>`;
+  if(sug.length)h+=`<div class="ban"><span><b>${sug.length} lançamentos sem encontro.</b> Posso classificar pelo nome (Rebanhão, Experiência, Dons). Você ajusta depois em Lançamentos.</span><button class="btn" onclick="aplicaSug()">Classificar automaticamente</button></div>`;
+  h+='<h2>Resumo dos encontros</h2><div class="grid">';let any=false;
+  encs().forEach(n=>{const g=L.filter(x=>x.enc.toUpperCase()==n.toUpperCase());if(!g.length)return;any=true;const r=sum(g,'e'),c=sum(g,'s'),k=D.ev.indexOf(n),st=k<0?null:D.servos.reduce((a,x)=>(a[x.st[k]]=(a[x.st[k]]||0)+1,a),{}),v=CFG.VALORES[n];
+    h+=`<div class="c"><small>${esc(n)}</small><strong class="${r-c<0?'out':''}">${brl(r-c)}</strong><div class="n"><span class="in">Receita ${brl(r)}</span> · <span class="out">Custo ${brl(c)}</span></div>${st?`<div class="n">Servos: ${st.PAGO||0} pagos · ${st.PAGAR||0} a pagar${v&&st.PAGAR?` (faltam ${brl(st.PAGAR*v)})`:''}</div>`:''}</div>`});
+  return h+(any?'':'<p class="mut">Nenhum lançamento classificado ainda'+(fMes?' neste mês':'')+'. Use a coluna "Encontro" em Lançamentos.</p>')+'</div><p class="mut">Cada encontro soma só o que você classificou. O que ficar sem encontro não entra nesses cards, mas continua no saldo geral.</p>'}
+
+function lan(){let all=D.lan.slice(),run=D.ini;all.forEach(x=>{run+=x.e-x.s;x.sal=run});const q=fQ.toLowerCase(),can=!!API();
+  const L=all.filter(x=>(!fMes||x.m==fMes)&&(!q||x.desc.toLowerCase().includes(q))&&(fTipo==''||(fTipo=='in'?x.e>0:x.s>0)));
+  let h=`<div class="grid"><div class="c"><small>Entradas (filtro)</small><strong class="in">${brl(sum(L,'e'))}</strong></div><div class="c"><small>Saídas (filtro)</small><strong class="out">${brl(sum(L,'s'))}</strong></div><div class="c"><small>Resultado</small><strong>${brl(sum(L,'e')-sum(L,'s'))}</strong></div></div>
+  <div class="tools"><select onchange="fTipo=this.value;draw()"><option value="">Entradas e saídas</option><option value="in" ${fTipo=='in'?'selected':''}>Só entradas</option><option value="out" ${fTipo=='out'?'selected':''}>Só saídas</option></select>
+  <input id="q" placeholder="Buscar descrição…" value="${esc(fQ)}" oninput="fQ=this.value;clearTimeout(window.tq);window.tq=setTimeout(()=>{draw();const i=$('#q');i.focus();i.setSelectionRange(99,99)},250)">
+  <button class="btn" onclick="novo()">+ Novo lançamento</button></div>`;
+  if(!L.length)return h+'<p class="mut">Nada encontrado com esses filtros.</p>';
+  h+='<div class="wrap"><table><thead><tr><th>Data</th><th>Descrição</th><th>Encontro</th><th class="r">Entrada</th><th class="r">Saída</th><th class="r">Saldo</th></tr></thead><tbody>';
+  months().forEach(m=>{const g=L.filter(x=>x.m==m);if(!g.length)return;
+    h+=`<tr class="mes"><td colspan="6">${mlabel(m)} &nbsp; <span class="in">+${brl(sum(g,'e'))}</span> &nbsp; <span class="out">−${brl(sum(g,'s'))}</span> &nbsp; <span class="mut">${g.length} lançamentos</span></td></tr>`;
+    g.forEach(x=>h+=`<tr><td>${x.d.slice(8)}/${x.d.slice(5,7)}</td><td>${esc(x.desc)}</td><td><select class="mini" onchange="setEnc(${x.row},this.value)">${encOpts(x.enc)}</select></td><td class="r in">${x.e?brl(x.e):''}</td><td class="r out">${x.s?brl(x.s):''}</td><td class="r">${brl(x.sal)}</td></tr>`)});
+  return h+'</tbody></table></div>'}
+
+function desc(){const M={};vis().forEach(x=>{const k=x.desc.toUpperCase(),o=M[k]||(M[k]={n:x.desc,q:0,e:0,s:0});o.q++;o.e+=x.e;o.s+=x.s});
+  const A=Object.values(M).sort((a,b)=>(b.e+b.s)-(a.e+a.s));
+  return`<p class="mut">${fMes?'Mês: '+mlabel(fMes)+'. ':''}Toque em uma linha para ver os lançamentos dela.</p><div class="wrap"><table><thead><tr><th>Descrição</th><th class="r">Qtd</th><th class="r">Entradas</th><th class="r">Saídas</th><th class="r">Líquido</th></tr></thead><tbody>${A.map(o=>`<tr class="click" onclick="fQ='${esc(o.n).replace(/'/g,"\\'")}';fTipo='';go('lan')"><td>${esc(o.n)}</td><td class="r">${o.q}</td><td class="r in">${o.e?brl(o.e):''}</td><td class="r out">${o.s?brl(o.s):''}</td><td class="r">${brl(o.e-o.s)}</td></tr>`).join('')}</tbody></table></div>`}
+
+function servos(){const q=fQ.toLowerCase(),evs=D.ev.map((e,k)=>({e,k})).filter(x=>!fEv||x.e==fEv),S=D.servos.filter(s=>!q||s.n.toLowerCase().includes(q));
+  const cards=D.ev.map((e,k)=>{const c={PAGO:0,PAGAR:0,NULO:0};D.servos.forEach(s=>c[s.st[k]]=(c[s.st[k]]||0)+1);const n=c.PAGO+c.PAGAR,v=CFG.VALORES[e];
+    return`<div class="c"><small>${esc(e)}</small><strong>${c.PAGO}<span class="mut"> / ${n} pagos</span></strong><div class="prog"><i style="width:${n?c.PAGO/n*100:0}%;background:var(--ok)"></i></div><div class="n">${c.PAGAR} a pagar${v?` · faltam ${brl(c.PAGAR*v)}`:''} · ${c.NULO} fora</div></div>`}).join('');
+  let h=`<div class="grid">${cards}</div><div class="tools"><input id="q" placeholder="Buscar servo…" value="${esc(fQ)}" oninput="fQ=this.value;clearTimeout(window.tq);window.tq=setTimeout(()=>{draw();const i=$('#q');i.focus();i.setSelectionRange(99,99)},250)">
+  <select onchange="fEv=this.value;draw()"><option value="">Todos os encontros</option>${D.ev.map(e=>`<option ${e==fEv?'selected':''}>${esc(e)}</option>`).join('')}</select></div>
+  <div class="wrap"><table><thead><tr><th class="nome">Servo</th>${evs.map(x=>`<th>${esc(x.e)}</th>`).join('')}</tr></thead><tbody>`;
+  S.forEach((s,i)=>h+=`<tr><td class="nome">${esc(s.n)}</td>${evs.map(x=>`<td><select class="chip ${s.st[x.k]}" onchange="setSt('${esc(s.n).replace(/'/g,"\\'")}',${x.k},this)">${['PAGO','PAGAR','NULO'].map(v=>`<option ${v==s.st[x.k]?'selected':''}>${v}</option>`).join('')}</select></td>`).join('')}</tr>`);
+  return h+`</tbody></table></div><p class="mut">${S.length} servos. Escolha PAGO, PAGAR ou NULO em cada célula. A planilha é atualizada na hora.</p>`}
+
+/* ===== edição (via Apps Script) ===== */
+const fail=e=>{if(e&&e.message)alert(e.message)};
+async function api(p){if(!API()){cfgOpen();throw new Error('')}
+  if(!key){key=prompt('Senha de edição:')||'';if(!key)throw new Error('')}
+  const r=await (await fetch(API()+'?'+new URLSearchParams({key,p:JSON.stringify(p)}))).json();
+  if(!r.ok){if(/senha/i.test(r.erro||'')){key='';sessionStorage.removeItem('rdl_key')}throw new Error(r.erro||'Erro ao salvar')}
+  sessionStorage.setItem('rdl_key',key);return r}
+const refresh=()=>{last='';load()};
+async function setSt(nome,k,el){el.className='chip '+el.value;const s=D.servos.find(x=>x.n==nome);const old=s.st[k];s.st[k]=el.value;
+  try{await api({a:'status',nome,evento:D.ev[k],valor:el.value});refresh()}catch(e){s.st[k]=old;fail(e);refresh()}}
+async function setEnc(row,enc){const x=D.lan.find(l=>l.row==row),old=x.enc;x.enc=enc;
+  try{await api({a:'class',itens:[{row,desc:x.desc,enc}]});refresh()}catch(e){x.enc=old;fail(e);refresh()}}
+async function aplicaSug(){const it=sugestoes();if(!confirm(`Classificar ${it.length} lançamentos automaticamente?`))return;
+  try{await api({a:'class',itens:it});refresh()}catch(e){fail(e)}}
+function novo(){if(!API()){cfgOpen();return}$('#f_data').value=new Date().toISOString().slice(0,10);$('#f_enc').innerHTML=encOpts('');$('#dlg').showModal()}
+$('#fm').addEventListener('submit',async e=>{if(e.submitter?.value!=='ok')return;
+  try{await api({a:'add',tipo:$('#f_tipo').value,data:$('#f_data').value,desc:$('#f_desc').value.trim().toUpperCase(),valor:parseFloat($('#f_val').value),enc:$('#f_enc').value});$('#f_desc').value=$('#f_val').value='';refresh()}catch(er){fail(er)}});
+function cfgOpen(){$('#c_url').value=localStorage.getItem('rdl_api')||'';$('#cfg').showModal()}
+$('#cf').addEventListener('submit',e=>{if(e.submitter?.value==='ok'){localStorage.setItem('rdl_api',$('#c_url').value.trim());alert('Conectado. Agora é só editar.')}});
+
+renderNav();load();setInterval(load,CFG.REFRESH_MS);
+</script>
+</body>
+</html>
