@@ -184,10 +184,17 @@ function servos(){const q=fQ.toLowerCase(),evs=D.ev.map((e,k)=>({e,k})).filter(x
 
 /* ===== edição (via Apps Script) ===== */
 const fail=e=>{if(e&&e.message)alert(e.message)};
+function jsonp(url){return new Promise((ok,no)=>{const cb='rdl'+Date.now()+Math.floor(Math.random()*1e4),s=document.createElement('script');let done=false;
+  const end=()=>{done=true;delete window[cb];s.remove()};
+  window[cb]=r=>{end();ok(r)};
+  s.onload=()=>setTimeout(()=>{if(!done){end();no(new Error('old'))}},50);
+  s.onerror=()=>{if(!done){end();no(new Error('net'))}};
+  setTimeout(()=>{if(!done){end();no(new Error('net'))}},30000);
+  s.src=url+(url.includes('?')?'&':'?')+'callback='+cb;document.head.appendChild(s)})}
 async function api(p){if(!API()){cfgOpen();throw new Error('')}
   if(!key){key=prompt('Senha de edição:')||'';if(!key)throw new Error('')}
-  let r;try{r=await (await fetch(API()+'?'+new URLSearchParams({key,p:JSON.stringify(p)}))).json()}
-  catch(e){throw new Error('Não consegui falar com o Apps Script. Confira se o link termina em /exec e se a implantação está com acesso "Qualquer pessoa".')}
+  let r;try{r=await jsonp(API()+'?'+new URLSearchParams({key,p:JSON.stringify(p)}))}
+  catch(e){throw new Error(e.message=='old'?'O Code.gs do Apps Script está desatualizado. Cole o Code.gs novo e publique uma Nova versão (Implantar → Gerenciar implantações → ✏️ → Nova versão).':'Não consegui falar com o Apps Script. Confira se o link termina em /exec e se a implantação está com acesso "Qualquer pessoa".')}
   if(!r.ok){if(/senha/i.test(r.erro||'')){key='';sessionStorage.removeItem('rdl_key')}throw new Error(r.erro||'Erro ao salvar')}
   sessionStorage.setItem('rdl_key',key);return r}
 const refresh=()=>{last='';load()};
@@ -215,9 +222,8 @@ $('#fm').addEventListener('submit',async e=>{if(e.submitter?.value!=='ok')return
   try{await api({a:'add',tipo:t,data:pd.d,desc:pd.desc,valor:v,enc:pd.enc});addPend(pd);$('#f_desc').value=$('#f_val').value='';refresh()}catch(er){fail(er)}});
 async function testa(){const o=$('#c_res'),u=$('#c_url').value.trim()||API();if(!u){o.textContent='Cole o link primeiro.';return}
   o.textContent='Testando…';
-  try{const t=await (await fetch(u+'?key=teste&p={}')).text();let r;try{r=JSON.parse(t)}catch(e){o.textContent='⚠️ O link respondeu, mas não com o Apps Script esperado. Confira se é o link /exec da implantação com o código certo.';return}
-    o.textContent=/senha/i.test(r.erro||'')?'✅ Conexão OK. O Apps Script respondeu ao site.':'Respondeu: '+t.slice(0,120)}
-  catch(e){o.textContent='❌ O navegador foi bloqueado. Quase sempre é o acesso da implantação: precisa ser "Qualquer pessoa" (não "Qualquer pessoa com Conta do Google" nem "Somente eu").'}}
+  try{const r=await jsonp(u+'?'+new URLSearchParams({key:'teste',p:'{}'}));o.textContent=/senha/i.test(r.erro||'')?'✅ Conexão OK. O Apps Script respondeu ao site.':'Respondeu: '+JSON.stringify(r).slice(0,120)}
+  catch(e){o.textContent=e.message=='old'?'⚠️ O link está certo e o acesso também, mas o Code.gs publicado é a versão antiga. Cole o Code.gs novo no Apps Script e publique uma Nova versão.':'❌ Não chegou ao Apps Script. Confira o link /exec e se o acesso da implantação é "Qualquer pessoa".'}}
 function cfgOpen(){$('#c_res').textContent='';$('#c_url').value=localStorage.getItem('rdl_api')||'';$('#cfg').showModal()}
 $('#cf').addEventListener('submit',e=>{if(e.submitter?.value==='ok'){localStorage.setItem('rdl_api',$('#c_url').value.trim());alert('Conectado. Agora é só editar.')}});
 
