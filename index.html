@@ -72,7 +72,8 @@ select.mini{padding:4px 8px;font-size:13px;max-width:190px}
 <label>Faz parte de qual encontro? (opcional)</label><select id="f_enc"></select>
 <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:14px"><button class="pill" value="x" formnovalidate>Cancelar</button><button class="btn" value="ok">Salvar na planilha</button></div></form></dialog>
 <dialog id="cfg"><form method="dialog" id="cf"><h3 style="margin:0">Conectar edição</h3><p class="mut">Cole o link do Apps Script (termina em /exec). Veja o passo a passo do Code.gs.</p>
-<input id="c_url" placeholder="https://script.google.com/macros/s/.../exec"><div style="display:flex;gap:8px;justify-content:flex-end;margin-top:14px"><button class="pill" value="x" formnovalidate>Fechar</button><button class="btn" value="ok">Salvar</button></div></form></dialog>
+<input id="c_url" placeholder="https://script.google.com/macros/s/.../exec">
+<div style="margin-top:10px"><button type="button" class="pill" onclick="testa()">Testar conexão</button></div><p id="c_res" class="mut"></p><div style="display:flex;gap:8px;justify-content:flex-end;margin-top:14px"><button class="pill" value="x" formnovalidate>Fechar</button><button class="btn" value="ok">Salvar</button></div></form></dialog>
 <script src="config.js"></script>
 <script>
 /* ===== CONFIGURAÇÃO ===== */
@@ -212,7 +213,12 @@ function novo(){if(!API()){cfgOpen();return}$('#f_data').value=new Date().toISOS
 $('#fm').addEventListener('submit',async e=>{if(e.submitter?.value!=='ok')return;
   const t=$('#f_tipo').value,v=parseFloat($('#f_val').value),pd={k:'a',d:$('#f_data').value,desc:$('#f_desc').value.trim().toUpperCase(),e:t=='in'?v:0,s:t=='out'?v:0,enc:$('#f_enc').value};
   try{await api({a:'add',tipo:t,data:pd.d,desc:pd.desc,valor:v,enc:pd.enc});addPend(pd);$('#f_desc').value=$('#f_val').value='';refresh()}catch(er){fail(er)}});
-function cfgOpen(){$('#c_url').value=localStorage.getItem('rdl_api')||'';$('#cfg').showModal()}
+async function testa(){const o=$('#c_res'),u=$('#c_url').value.trim()||API();if(!u){o.textContent='Cole o link primeiro.';return}
+  o.textContent='Testando…';
+  try{const t=await (await fetch(u+'?key=teste&p={}')).text();let r;try{r=JSON.parse(t)}catch(e){o.textContent='⚠️ O link respondeu, mas não com o Apps Script esperado. Confira se é o link /exec da implantação com o código certo.';return}
+    o.textContent=/senha/i.test(r.erro||'')?'✅ Conexão OK. O Apps Script respondeu ao site.':'Respondeu: '+t.slice(0,120)}
+  catch(e){o.textContent='❌ O navegador foi bloqueado. Quase sempre é o acesso da implantação: precisa ser "Qualquer pessoa" (não "Qualquer pessoa com Conta do Google" nem "Somente eu").'}}
+function cfgOpen(){$('#c_res').textContent='';$('#c_url').value=localStorage.getItem('rdl_api')||'';$('#cfg').showModal()}
 $('#cf').addEventListener('submit',e=>{if(e.submitter?.value==='ok'){localStorage.setItem('rdl_api',$('#c_url').value.trim());alert('Conectado. Agora é só editar.')}});
 
 renderNav();load();setInterval(load,CFG.REFRESH_MS);
