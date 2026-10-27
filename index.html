@@ -73,6 +73,7 @@ select.mini{padding:4px 8px;font-size:13px;max-width:190px}
 <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:14px"><button class="pill" value="x" formnovalidate>Cancelar</button><button class="btn" value="ok">Salvar na planilha</button></div></form></dialog>
 <dialog id="cfg"><form method="dialog" id="cf"><h3 style="margin:0">Conectar edição</h3><p class="mut">Cole o link do Apps Script (termina em /exec). Veja o passo a passo do Code.gs.</p>
 <input id="c_url" placeholder="https://script.google.com/macros/s/.../exec"><div style="display:flex;gap:8px;justify-content:flex-end;margin-top:14px"><button class="pill" value="x" formnovalidate>Fechar</button><button class="btn" value="ok">Salvar</button></div></form></dialog>
+<script src="config.js"></script>
 <script>
 /* ===== CONFIGURAÇÃO ===== */
 const CFG={
@@ -80,6 +81,8 @@ const CFG={
   ABA_DFC:'DFC', ABA_SERVOS:'SERVOS RDL',
   API_URL:'',            // ou use o botão ⚙ no site
   REFRESH_MS:10000,
+  // células lidas diretamente da aba DFC (ajuste se mudar de lugar)
+  CELULAS:{total:'D6',investido:'E2',rend:'E3',dinheiro:'B2'},
   VALORES:{'REBANHÃO 2026':115,'EXPERIÊNCIA DE ORAÇÃO 2026':115,'DONS E SANTIFICAÇÕES 2026':35}, // valor por servo (para "faltam R$")
   // sugestão automática de classificação pelo texto da descrição (nomes = cabeçalhos da aba de servos)
   SUGESTOES:[[/REBANH/,'REBANHÃO 2026'],[/EXPERI|EXP\./,'EXPERIÊNCIA DE ORAÇÃO 2026'],[/DONS/,'DONS E SANTIFICAÇÕES 2026']]
@@ -88,7 +91,7 @@ const $=s=>document.querySelector(s),MES=['Jan','Fev','Mar','Abr','Mai','Jun','J
 const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const brl=n=>n.toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
 const mlabel=m=>MES[+m.slice(5)-1]+'/'+m.slice(0,4),sum=(L,k)=>L.reduce((a,x)=>a+x[k],0);
-const API=()=>localStorage.getItem('rdl_api')||CFG.API_URL;
+const API=()=>localStorage.getItem('rdl_api')||window.RDL_API||CFG.API_URL;
 function num(s){s=String(s??'').replace(/[^\d,.\-]/g,'');if(!/\d/.test(s))return null;
   if(s.includes(','))s=s.replace(/\./g,'').replace(',','.');else if((s.match(/\./g)||[]).length>1||/\.\d{3}$/.test(s))s=s.replace(/\./g,'');
   const v=parseFloat(s);return isNaN(v)?null:v}
@@ -98,19 +101,22 @@ function csv(t){const R=[];let r=[],c='',q=false;for(let i=0;i<t.length;i++){con
   if(q){if(ch=='"'){if(t[i+1]=='"'){c+='"';i++}else q=false}else c+=ch}
   else if(ch=='"')q=true;else if(ch==','){r.push(c);c=''}else if(ch=='\n'){r.push(c);R.push(r);r=[];c=''}else if(ch!='\r')c+=ch}
   if(c||r.length){r.push(c);R.push(r)}return R}
-async function grid(aba){const u=`https://docs.google.com/spreadsheets/d/${CFG.SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(aba)}&_=${Date.now()}`;
+async function grid(aba){const u=`https://docs.google.com/spreadsheets/d/${CFG.SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(aba)}&headers=0&_=${Date.now()}`;
   const r=await fetch(u);if(!r.ok)throw new Error('HTTP '+r.status);const t=await r.text();if(/^\s*</.test(t))throw new Error('A planilha não está pública');return csv(t)}
 
+async function cel(a){try{const r=await fetch(`https://docs.google.com/spreadsheets/d/${CFG.SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(CFG.ABA_DFC)}&range=${a}&headers=0&_=${Date.now()}`);
+  if(!r.ok)return null;const t=await r.text();return /^\s*</.test(t)?null:num((csv(t)[0]||[])[0])}catch(e){return null}}
+async function cels(){const o={};await Promise.all(Object.entries(CFG.CELULAS).map(async([k,a])=>o[k]=await cel(a)));return o}
 /* ===== leitura da planilha ===== */
-function parse(G,S){
+function parse(G,S,C={}){
   const lan=[];let first=-1;
   G.forEach((r,i)=>{const d=dt(r[0]);if(d&&String(r[1]||'').trim()){if(first<0)first=i;
     lan.push({row:i+1,d,m:d.slice(0,7),desc:r[1].trim().replace(/\s+/g,' '),e:num(r[2])||0,s:num(r[3])||0,enc:String(r[5]||'').trim()})}});
   let ini=0;for(let i=first-1;i>=0;i--){if(/^\s*data\s*$/i.test(String(G[i][0])))break;const v=num(G[i][4]);if(v!==null&&!String(G[i][0]).trim()){ini=v;break}}
   const find=l=>{for(let i=0;i<G.length;i++)for(let j=0;j<G[i].length;j++)if(String(G[i][j]).trim().toUpperCase()===l)return[i,j];return null};
   const at=(l,di,dj)=>{const p=find(l);if(!p)return null;return num((G[p[0]+di]||[])[p[1]+dj])};
-  const investido=at('INVESTIDO',1,0)||0,rend=at('RENDIMENTOS',0,1)||0;
-  const inv={investido,rend,dinheiro:at('DINHEIRO',1,0)||0,total:at('TOTAL INVESTIMENTO',1,0)??(investido+rend)};
+  const investido=C.investido??(at('INVESTIDO',1,0)||0),rend=C.rend??(at('RENDIMENTOS',0,1)||0);
+  const inv={investido,rend,dinheiro:C.dinheiro??(at('DINHEIRO',1,0)||0),total:C.total??at('TOTAL INVESTIMENTO',1,0)??(investido+rend)};
   const ev=(S[0]||[]).slice(1).map(x=>x.trim()).filter(Boolean);
   const servos=S.slice(1).filter(r=>String(r[0]).trim()).map((r,i)=>({n:r[0].trim(),st:ev.map((_,k)=>String(r[k+1]||'').trim().toUpperCase()||'NULO')}));
   return{lan,ini,inv,ev,servos}}
@@ -120,9 +126,9 @@ let D=null,tab='resumo',fMes='',fQ='',fTipo='',fEv='',last='',key=sessionStorage
 const TABS=[['resumo','Resumo'],['lan','Lançamentos'],['desc','Por descrição'],['servos','Servos']];
 function renderNav(){$('#nav').innerHTML=TABS.map(([k,n])=>`<button class="${k==tab?'on':''}" onclick="go('${k}')">${n}</button>`).join('')}
 function go(k){tab=k;renderNav();draw();scrollTo(0,0)}
-async function load(){try{const[G,S]=await Promise.all([grid(CFG.ABA_DFC),grid(CFG.ABA_SERVOS)]);const h=JSON.stringify([G,S]);
+async function load(){try{const[G,S,C]=await Promise.all([grid(CFG.ABA_DFC),grid(CFG.ABA_SERVOS),cels()]);const h=JSON.stringify([G,S,C]);
   $('#dot').className='dot';$('#st').textContent='ao vivo · '+new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
-  if(h!==last&&document.activeElement?.tagName!=='SELECT'){last=h;D=parse(G,S);draw()}}
+  if(h!==last&&document.activeElement?.tagName!=='SELECT'){last=h;D=parse(G,S,C);aplicaPend();draw()}}
  catch(e){$('#dot').className='dot off';$('#st').textContent='sem conexão';if(!D)$('#app').innerHTML=`<div class="err"><b>Não consegui ler a planilha.</b><br>${esc(e.message)}<br>Abra a planilha → Compartilhar → "Qualquer pessoa com o link" como <b>Leitor</b>, e confira os nomes das abas (<code>${CFG.ABA_DFC}</code> e <code>${CFG.ABA_SERVOS}</code>).</div>`}}
 const months=()=>[...new Set(D.lan.map(x=>x.m))].sort().reverse();
 const vis=()=>D.lan.filter(x=>!fMes||x.m==fMes);
@@ -139,7 +145,7 @@ function resumo(){const t=tot(),I=D.inv,L=vis(),e=sum(L,'e'),s=sum(L,'s'),ms=mon
   const mx=Math.max(1,...ms.flatMap(m=>[sum(D.lan.filter(x=>x.m==m),'e'),sum(D.lan.filter(x=>x.m==m),'s')]));
   const sug=sugestoes();
   let h=`<div class="hero"><small>Total do grupo (banco + dinheiro)</small><div class="big">${brl(t.total)}</div>
-  <div class="sub"><span>Saldo do caixa<b>${brl(t.saldo)}</b></span><span>Total investido<b>${brl(I.total)}</b><small>${brl(I.investido)} aplicados + ${brl(I.rend)} de rendimento</small></span><span>Dinheiro em mãos<b>${brl(I.dinheiro)}</b></span><span>Banco<b>${brl(t.banco)}</b></span></div></div>
+  <div class="sub"><span>Saldo do caixa<b>${brl(t.saldo)}</b></span><span>Total investido<b>${brl(I.total)}</b><small>célula ${CFG.CELULAS.total} · ${brl(I.investido)} aplicados + ${brl(I.rend)} rendimento</small></span><span>Dinheiro em mãos<b>${brl(I.dinheiro)}</b></span><span>Banco<b>${brl(t.banco)}</b></span></div></div>
   <h2>${fMes?mlabel(fMes):'Todo o período'}</h2><div class="grid"><div class="c"><small>Entradas</small><strong class="in">${brl(e)}</strong></div><div class="c"><small>Saídas</small><strong class="out">${brl(s)}</strong></div><div class="c"><small>Resultado</small><strong>${brl(e-s)}</strong></div></div>
   <div class="c"><div class="bars">${ms.map(m=>{const g=D.lan.filter(x=>x.m==m),a=sum(g,'e'),b=sum(g,'s');
     return`<div class="bar ${m==fMes?'on':''}" onclick="fMes='${m==fMes?'':m}';draw()"><div class="pair"><i class="e" style="height:${a/mx*100}%" title="Entradas ${brl(a)}"></i><i class="s" style="height:${b/mx*100}%" title="Saídas ${brl(b)}"></i></div>${mlabel(m)}</div>`}).join('')}</div><div class="mut">Verde: entradas · Vermelho: saídas · toque num mês para filtrar</div></div>`;
@@ -179,19 +185,33 @@ function servos(){const q=fQ.toLowerCase(),evs=D.ev.map((e,k)=>({e,k})).filter(x
 const fail=e=>{if(e&&e.message)alert(e.message)};
 async function api(p){if(!API()){cfgOpen();throw new Error('')}
   if(!key){key=prompt('Senha de edição:')||'';if(!key)throw new Error('')}
-  const r=await (await fetch(API()+'?'+new URLSearchParams({key,p:JSON.stringify(p)}))).json();
+  let r;try{r=await (await fetch(API()+'?'+new URLSearchParams({key,p:JSON.stringify(p)}))).json()}
+  catch(e){throw new Error('Não consegui falar com o Apps Script. Confira se o link termina em /exec e se a implantação está com acesso "Qualquer pessoa".')}
   if(!r.ok){if(/senha/i.test(r.erro||'')){key='';sessionStorage.removeItem('rdl_key')}throw new Error(r.erro||'Erro ao salvar')}
   sessionStorage.setItem('rdl_key',key);return r}
 const refresh=()=>{last='';load()};
-async function setSt(nome,k,el){el.className='chip '+el.value;const s=D.servos.find(x=>x.n==nome);const old=s.st[k];s.st[k]=el.value;
-  try{await api({a:'status',nome,evento:D.ev[k],valor:el.value});refresh()}catch(e){s.st[k]=old;fail(e);refresh()}}
-async function setEnc(row,enc){const x=D.lan.find(l=>l.row==row),old=x.enc;x.enc=enc;
-  try{await api({a:'class',itens:[{row,desc:x.desc,enc}]});refresh()}catch(e){x.enc=old;fail(e);refresh()}}
+/* alterações já enviadas ficam valendo na tela até a planilha (lida via Google, com atraso) confirmar */
+let PEND=[];
+const pk=p=>p.k=='s'?'s|'+p.n+'|'+p.ev:p.k=='e'?'e|'+p.row:'a|'+p.d+p.desc+p.e+p.s;
+function addPend(p){p.t=Date.now();PEND=PEND.filter(x=>pk(x)!=pk(p));PEND.push(p)}
+function delPend(p){PEND=PEND.filter(x=>pk(x)!=pk(p))}
+function aplicaPend(){PEND=PEND.filter(p=>{if(Date.now()-p.t>120000)return false;
+  if(p.k=='s'){const s=D.servos.find(x=>x.n==p.n),i=D.ev.indexOf(p.ev);if(!s||i<0||s.st[i]==p.v)return false;s.st[i]=p.v;return true}
+  if(p.k=='e'){const x=D.lan.find(l=>l.row==p.row);if(!x||x.enc==p.v)return false;x.enc=p.v;return true}
+  if(D.lan.some(l=>l.d==p.d&&l.desc==p.desc&&Math.abs(l.e-p.e)<.005&&Math.abs(l.s-p.s)<.005))return false;
+  D.lan.push({row:0,d:p.d,m:p.d.slice(0,7),desc:p.desc,e:p.e,s:p.s,enc:p.enc});return true})}
+async function setSt(nome,k,el){el.className='chip '+el.value;const s=D.servos.find(x=>x.n==nome);const old=s.st[k],pd={k:'s',n:nome,ev:D.ev[k],v:el.value};s.st[k]=el.value;addPend(pd);
+  try{await api({a:'status',nome,evento:D.ev[k],valor:el.value});refresh()}catch(e){delPend(pd);s.st[k]=old;fail(e);refresh()}}
+async function setEnc(row,enc){const x=D.lan.find(l=>l.row==row),old=x.enc,pd={k:'e',row,v:enc};x.enc=enc;addPend(pd);
+  try{await api({a:'class',itens:[{row,desc:x.desc,enc}]});refresh()}catch(e){delPend(pd);x.enc=old;fail(e);refresh()}}
 async function aplicaSug(){const it=sugestoes();if(!confirm(`Classificar ${it.length} lançamentos automaticamente?`))return;
-  try{await api({a:'class',itens:it});refresh()}catch(e){fail(e)}}
+  const ps=it.map(i=>({k:'e',row:i.row,v:i.enc}));ps.forEach(addPend);aplicaPend();draw();
+  try{for(let i=0;i<it.length;i+=12){$('#st').textContent=`classificando ${Math.min(i+12,it.length)}/${it.length}…`;await api({a:'class',itens:it.slice(i,i+12)})}refresh()}
+  catch(e){ps.forEach(delPend);fail(e);refresh()}}
 function novo(){if(!API()){cfgOpen();return}$('#f_data').value=new Date().toISOString().slice(0,10);$('#f_enc').innerHTML=encOpts('');$('#dlg').showModal()}
 $('#fm').addEventListener('submit',async e=>{if(e.submitter?.value!=='ok')return;
-  try{await api({a:'add',tipo:$('#f_tipo').value,data:$('#f_data').value,desc:$('#f_desc').value.trim().toUpperCase(),valor:parseFloat($('#f_val').value),enc:$('#f_enc').value});$('#f_desc').value=$('#f_val').value='';refresh()}catch(er){fail(er)}});
+  const t=$('#f_tipo').value,v=parseFloat($('#f_val').value),pd={k:'a',d:$('#f_data').value,desc:$('#f_desc').value.trim().toUpperCase(),e:t=='in'?v:0,s:t=='out'?v:0,enc:$('#f_enc').value};
+  try{await api({a:'add',tipo:t,data:pd.d,desc:pd.desc,valor:v,enc:pd.enc});addPend(pd);$('#f_desc').value=$('#f_val').value='';refresh()}catch(er){fail(er)}});
 function cfgOpen(){$('#c_url').value=localStorage.getItem('rdl_api')||'';$('#cfg').showModal()}
 $('#cf').addEventListener('submit',e=>{if(e.submitter?.value==='ok'){localStorage.setItem('rdl_api',$('#c_url').value.trim());alert('Conectado. Agora é só editar.')}});
 
